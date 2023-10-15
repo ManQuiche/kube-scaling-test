@@ -1,0 +1,46 @@
+{{- if eq .Values.node true }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: node-stress
+spec:
+  selector:
+    matchLabels:
+      app: node-stress
+  template:
+    metadata:
+      labels:
+        app: node-stress
+    spec:
+      containers:
+        - name: node-stress
+          image: polinux/stress:1.0.4
+          env:
+            - name: WAIT_SECONDS
+              value: {{ .Values.pod.waitSeconds }}
+          args:
+            - "stress"
+            - "--cpu"
+            - "8"
+            - "--timeout"
+            - "{{ .Values.pod.stressTimeoutMinutes }}m"
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: node-stress
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: node-stress
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 75
+  {{- end }}

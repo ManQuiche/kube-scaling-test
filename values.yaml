@@ -1,0 +1,9 @@
+pod:
+  enabled: true
+  waitSeconds: 60
+  stressTimeoutMinutes: 3
+
+node:
+  enabled: false
+  waitSeconds: 180
+  stressTimeoutMinutes: 5

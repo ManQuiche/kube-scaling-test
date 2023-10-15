@@ -1,0 +1,45 @@
+{{- if eq .Values.node true }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: node-hpa-test
+data:
+  node-test.sh: |- {{ .Files.Get "scripts/node-test.sh" | nindent 4 }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: node-hpa-test
+spec:
+  template:
+    spec:
+      serviceAccountName: checks
+      containers:
+        - name: check-loadbalancer-svc
+          image: bitnami/kubectl:1.26
+          workingDir: /checks
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsUser: 0
+          command: ["/bin/bash", "-c"]
+          args:
+            - "cp /conf/node-test.sh ./ && chmod u+x node-test.sh && ./node-test.sh"
+          volumeMounts:
+            - mountPath: /conf
+              name: config
+          env:
+            - name: TESTING_NS
+              value: {{ .Release.Namespace }}
+      restartPolicy: Never
+      volumes:
+        - name: config
+          configMap:
+            name: node-hpa-test
+  backoffLimit: 0
+  podFailurePolicy:
+    rules:
+      - action: FailJob
+        onExitCodes:
+          operator: In
+          values: [ 1 ]
+{{- end }}
